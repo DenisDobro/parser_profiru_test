@@ -30,6 +30,7 @@ class FetchConfig(BaseModel):
     discover_related_sources: bool = False
     max_discovered_sources: int = 25
     related_source_prefixes: list[str] = Field(default_factory=lambda: ["/rabota/repetitor/"])
+    related_source_keywords: list[str] = Field(default_factory=list)
     selenium_headless: bool = True
     selenium_page_wait_seconds: int = 10
     selenium_profile_path: str | None = None

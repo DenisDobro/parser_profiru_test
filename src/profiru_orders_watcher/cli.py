@@ -85,6 +85,12 @@ def _discover_related_source_urls(source: SourceConfig, loaded: AppConfig) -> li
         path = parsed.path
         if not any(path.startswith(prefix) for prefix in loaded.fetch.related_source_prefixes):
             continue
+        link_text = link.get_text(" ").lower()
+        keyword_target = f"{path} {link_text}".lower()
+        if loaded.fetch.related_source_keywords and not any(
+            keyword.lower() in keyword_target for keyword in loaded.fetch.related_source_keywords
+        ):
+            continue
         if "?" in absolute or "#" in absolute:
             absolute = absolute.split("?", 1)[0].split("#", 1)[0]
         normalized = absolute.rstrip("/")

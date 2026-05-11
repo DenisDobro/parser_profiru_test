@@ -39,6 +39,7 @@ fetch:
   max_discovered_sources: 25
   related_source_prefixes:
     - "/rabota/repetitor/"
+  related_source_keywords: []
   selenium_headless: true
   selenium_page_wait_seconds: 10
   selenium_profile_path: null

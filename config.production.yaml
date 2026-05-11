@@ -7,31 +7,20 @@ sources:
     kind: public_html
     url: "https://profi.ru/rabota/repetitor/repetitor-po-podgotovke-k-ege-po-istorii/"
     enabled: true
-  - name: social-studies-tutor-orders
-    kind: public_html
-    url: "https://profi.ru/rabota/repetitor/obshchestvoznanie/"
-    enabled: true
-  - name: general-tutor-orders
-    kind: public_html
-    url: "https://profi.ru/rabota/repetitor/"
-    enabled: true
 
 filters:
   include_keywords:
     - история
-    - обществознание
     - егэ по истории
     - огэ по истории
     - впр по истории
-    - егэ по обществознанию
-    - огэ по обществознанию
-    - впр по обществознанию
     - мцко по истории
     - олимпиады по истории
     - всемирная история
     - история россии
     - история искусств
   exclude_keywords:
+    - обществознание
     - бесплатно
     - студент
     - только с отзывами
@@ -49,6 +38,9 @@ fetch:
   max_discovered_sources: 25
   related_source_prefixes:
     - "/rabota/repetitor/"
+  related_source_keywords:
+    - "истори"
+    - "istor"
   selenium_headless: true
   selenium_page_wait_seconds: 10
   selenium_profile_path: null
