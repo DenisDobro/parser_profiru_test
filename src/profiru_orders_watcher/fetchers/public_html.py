@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from urllib.parse import urljoin
+from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
 from bs4 import BeautifulSoup, Tag
@@ -35,6 +35,14 @@ def _parse_price(text: str) -> tuple[int | None, str | None]:
     return number, raw
 
 
+def _order_identity(order: Order) -> str:
+    parsed = urlparse(order.url)
+    order_id = parse_qs(parsed.query).get("o", [None])[0]
+    if order_id:
+        return f"{order.source}:order:{order_id}"
+    return order.fingerprint
+
+
 def _extract_json_ld_orders(soup: BeautifulSoup, source: SourceConfig) -> list[Order]:
     orders: list[Order] = []
     scripts = soup.find_all("script", attrs={"type": "application/ld+json"})
@@ -59,13 +67,14 @@ def _extract_json_ld_orders(soup: BeautifulSoup, source: SourceConfig) -> list[O
                 title = _clean_text(candidate.get("name") or candidate.get("title"))
                 url = candidate.get("url") or str(source.url)
                 description = _clean_text(candidate.get("description"))
-                if title:
+                full_url = urljoin(str(source.url), str(url))
+                if title and full_url.rstrip("/") != str(source.url).rstrip("/"):
                     price, raw_price = _parse_price(" ".join([title, description]))
                     orders.append(
                         Order(
                             source=source.name,
                             title=title,
-                            url=urljoin(str(source.url), str(url)),
+                            url=full_url,
                             description=description or None,
                             price=price,
                             raw_price=raw_price,
@@ -80,7 +89,12 @@ def _extract_order_from_card(card: Tag, source: SourceConfig) -> Order | None:
     if len(text) < 20:
         return None
 
-    link = card.find("a", href=True)
+    link = card.find("a", href=lambda href: isinstance(href, str) and "o=" in href)
+    if not isinstance(link, Tag):
+        link = card.find("a", href=True)
+    if not isinstance(link, Tag):
+        return None
+
     href = link.get("href") if isinstance(link, Tag) else None
     url = urljoin(str(source.url), str(href)) if href else str(source.url)
 
@@ -117,13 +131,13 @@ class PublicHtmlFetcher:
         soup = BeautifulSoup(response.text, "html.parser")
 
         orders = _extract_json_ld_orders(soup, source)
-        seen = {order.fingerprint for order in orders}
+        seen = {_order_identity(order) for order in orders}
 
         for selector in ORDER_CARD_SELECTORS:
             for card in soup.select(selector):
                 order = _extract_order_from_card(card, source)
-                if order and order.fingerprint not in seen:
+                if order and _order_identity(order) not in seen:
                     orders.append(order)
-                    seen.add(order.fingerprint)
+                    seen.add(_order_identity(order))
 
         return orders

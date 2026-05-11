@@ -1,30 +1,29 @@
 sources:
-  - name: api-orders
+  - name: history-tutor-orders
     kind: public_html
-    url: "https://profi.ru/rabota/it_freelance/zakazy-na-nastrojku-api/"
-    enabled: true
-  - name: programmer-orders
-    kind: public_html
-    url: "https://profi.ru/rabota/it_freelance/zakazy-dlya-programmistov/"
+    url: "https://profi.ru/rabota/repetitor/istoriya/"
     enabled: true
 
 filters:
   include_keywords:
-    - api
-    - интеграция
-    - backend
-    - telegram
-    - bot
-    - парсинг
+    - история
+    - репетитор
+    - егэ
+    - огэ
+    - впр
+    - обществознание
+    - подготовка
+    - школьник
+    - ученик
+    - экзамен
   exclude_keywords:
     - бесплатно
     - студент
     - только с отзывами
-  cities:
-    - Москва
-    - Санкт-Петербург
-    - онлайн
-  min_price: 3000
+    - контрольная
+    - зачет
+  cities: []
+  min_price: null
   max_price: null
 
 fetch:
