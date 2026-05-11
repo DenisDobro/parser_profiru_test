@@ -1,0 +1,43 @@
+sources:
+  - name: profi-backoffice
+    kind: backoffice_selenium
+    url: "https://profi.ru/backoffice/n.php"
+    enabled: false
+  - name: api-orders
+    kind: public_html
+    url: "https://profi.ru/rabota/it_freelance/zakazy-na-nastrojku-api/"
+    enabled: true
+  - name: programmer-orders
+    kind: public_html
+    url: "https://profi.ru/rabota/it_freelance/zakazy-dlya-programmistov/"
+    enabled: true
+
+filters:
+  include_keywords:
+    - api
+    - интеграция
+    - backend
+    - telegram
+    - bot
+    - парсинг
+  exclude_keywords:
+    - бесплатно
+    - студент
+    - только с отзывами
+  cities:
+    - Москва
+    - Санкт-Петербург
+    - онлайн
+  min_price: 3000
+  max_price: null
+
+fetch:
+  timeout_seconds: 20
+  delay_between_requests_seconds: 5
+  user_agent: "Mozilla/5.0 profiru-orders-watcher/0.1"
+  selenium_headless: true
+  selenium_page_wait_seconds: 10
+  selenium_profile_path: null
+
+storage:
+  sqlite_path: "./data/orders.sqlite3"

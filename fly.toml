@@ -1,0 +1,17 @@
+app = "profiru-orders-watcher-denisdobro"
+primary_region = "ams"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[processes]
+  app = "profiru-watch loop --config /app/config.production.yaml --interval 300"
+
+[[mounts]]
+  source = "orders_data"
+  destination = "/data"
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
