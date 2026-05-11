@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import time
 
 import httpx
 
@@ -35,9 +36,9 @@ class TelegramNotifier:
     def enabled(self) -> bool:
         return bool(self.token and self.chat_id)
 
-    def send(self, order: Order) -> None:
+    def send(self, order: Order) -> bool:
         if not self.enabled:
-            return
+            return True
 
         url = f"https://api.telegram.org/bot{self.token}/sendMessage"
         payload = {
@@ -52,4 +53,27 @@ class TelegramNotifier:
         }
         with httpx.Client(timeout=20) as client:
             response = client.post(url, json=payload)
-            response.raise_for_status()
+            if response.status_code == 429:
+                retry_after = _retry_after_seconds(response)
+                time.sleep(retry_after)
+                response = client.post(url, json=payload)
+            if response.is_error:
+                print(f"Telegram send failed: HTTP {response.status_code}")
+                return False
+        return True
+
+
+def _retry_after_seconds(response: httpx.Response) -> int:
+    try:
+        payload = response.json()
+    except ValueError:
+        return 5
+
+    parameters = payload.get("parameters")
+    if not isinstance(parameters, dict):
+        return 5
+
+    retry_after = parameters.get("retry_after")
+    if isinstance(retry_after, int):
+        return max(retry_after + 1, 1)
+    return 5

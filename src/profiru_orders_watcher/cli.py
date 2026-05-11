@@ -63,10 +63,13 @@ def run_once(config: str = typer.Option("config.yaml", "--config", "-c")) -> Non
             relevant += 1
             if storage.exists(order):
                 continue
+            if not notifier.send(order):
+                console.print(f"Notification failed: {order.title}")
+                continue
             storage.save(order)
-            notifier.send(order)
             sent += 1
             console.print(f"New relevant order: {order.title}")
+            time.sleep(1)
 
         time.sleep(loaded.fetch.delay_between_requests_seconds)
 
