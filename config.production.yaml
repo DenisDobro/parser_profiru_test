@@ -19,15 +19,15 @@ sources:
 filters:
   include_keywords:
     - история
-    - репетитор
     - егэ
     - огэ
     - впр
     - обществознание
-    - подготовка
-    - школьник
-    - ученик
-    - экзамен
+    - мцко по истории
+    - олимпиады по истории
+    - всемирная история
+    - история россии
+    - история искусств
   exclude_keywords:
     - бесплатно
     - студент
@@ -42,6 +42,10 @@ fetch:
   timeout_seconds: 20
   delay_between_requests_seconds: 5
   user_agent: "Mozilla/5.0 profiru-orders-watcher/0.1"
+  discover_related_sources: true
+  max_discovered_sources: 25
+  related_source_prefixes:
+    - "/rabota/repetitor/"
   selenium_headless: true
   selenium_page_wait_seconds: 10
   selenium_profile_path: null

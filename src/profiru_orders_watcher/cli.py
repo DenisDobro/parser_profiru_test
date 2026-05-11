@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import time
+from urllib.parse import urljoin, urlparse
 
+import httpx
 import typer
+from bs4 import BeautifulSoup, Tag
 from dotenv import load_dotenv
 from rich.console import Console
 
@@ -26,6 +29,72 @@ def _fetch_orders(source: SourceConfig, loaded: AppConfig) -> list[Order]:
     raise ValueError(f"Unknown source kind: {source.kind}")
 
 
+def _expand_sources(loaded: AppConfig) -> list[SourceConfig]:
+    enabled = [source for source in loaded.sources if source.enabled]
+    if not loaded.fetch.discover_related_sources:
+        return enabled
+
+    expanded = list(enabled)
+    seen_urls = {str(source.url).rstrip("/") for source in expanded}
+
+    for source in enabled:
+        if source.kind != "public_html":
+            continue
+        for url in _discover_related_source_urls(source, loaded):
+            normalized = url.rstrip("/")
+            if normalized in seen_urls:
+                continue
+            seen_urls.add(normalized)
+            expanded.append(
+                SourceConfig.model_validate(
+                    {
+                        "name": f"discovered-{len(expanded) + 1}",
+                        "kind": "public_html",
+                        "url": url,
+                        "enabled": True,
+                    }
+                )
+            )
+            if len(expanded) >= len(enabled) + loaded.fetch.max_discovered_sources:
+                return expanded
+
+    return expanded
+
+
+def _discover_related_source_urls(source: SourceConfig, loaded: AppConfig) -> list[str]:
+    headers = {"User-Agent": loaded.fetch.user_agent}
+    with httpx.Client(
+        timeout=loaded.fetch.timeout_seconds,
+        headers=headers,
+        follow_redirects=True,
+    ) as client:
+        response = client.get(str(source.url))
+        response.raise_for_status()
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    urls: list[str] = []
+    seen: set[str] = set()
+    for link in soup.find_all("a", href=True):
+        if not isinstance(link, Tag):
+            continue
+        href = link.get("href")
+        if not isinstance(href, str):
+            continue
+        absolute = urljoin(str(source.url), href)
+        parsed = urlparse(absolute)
+        path = parsed.path
+        if not any(path.startswith(prefix) for prefix in loaded.fetch.related_source_prefixes):
+            continue
+        if "?" in absolute or "#" in absolute:
+            absolute = absolute.split("?", 1)[0].split("#", 1)[0]
+        normalized = absolute.rstrip("/")
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        urls.append(f"{normalized}/")
+    return urls
+
+
 @app.command("validate-config")
 def validate_config(config: str = typer.Option("config.yaml", "--config", "-c")) -> None:
     loaded = load_config(config)
@@ -44,9 +113,7 @@ def run_once(config: str = typer.Option("config.yaml", "--config", "-c")) -> Non
     relevant = 0
     sent = 0
 
-    for source in loaded.sources:
-        if not source.enabled:
-            continue
+    for source in _expand_sources(loaded):
 
         console.print(f"Fetching source: {source.name}")
         try:

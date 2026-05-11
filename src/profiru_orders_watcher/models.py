@@ -27,6 +27,9 @@ class FetchConfig(BaseModel):
     timeout_seconds: int = 20
     delay_between_requests_seconds: int = 5
     user_agent: str = "Mozilla/5.0 profiru-orders-watcher/0.1"
+    discover_related_sources: bool = False
+    max_discovered_sources: int = 25
+    related_source_prefixes: list[str] = Field(default_factory=lambda: ["/rabota/repetitor/"])
     selenium_headless: bool = True
     selenium_page_wait_seconds: int = 10
     selenium_profile_path: str | None = None
