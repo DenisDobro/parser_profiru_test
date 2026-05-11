@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from hashlib import sha256
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -62,6 +63,10 @@ class Order(BaseModel):
 
     @property
     def fingerprint(self) -> str:
+        order_id = parse_qs(urlparse(self.url).query).get("o", [None])[0]
+        if order_id:
+            return sha256(f"profi-order:{order_id}".encode("utf-8")).hexdigest()
+
         base = "|".join(
             [
                 self.source.strip().lower(),

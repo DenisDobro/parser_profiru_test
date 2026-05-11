@@ -28,3 +28,23 @@ def test_public_order_identity_prefers_order_id() -> None:
 
     assert order is not None
     assert _order_identity(order) == "history:order:89292166"
+
+
+def test_order_fingerprint_deduplicates_same_profi_order_across_sources() -> None:
+    source = SourceConfig(name="history", url="https://profi.ru/rabota/repetitor/istoriya/")
+    other_source = SourceConfig(name="ege", url="https://profi.ru/rabota/repetitor/ege/")
+    html = """
+    <article>
+      <a href="/backoffice/n.php?o=89292166">Репетитор по истории</a>
+      <p>Подготовка к ВПР по истории</p>
+    </article>
+    """
+
+    first = _extract_order_from_card(BeautifulSoup(html, "html.parser").article, source)  # type: ignore[arg-type]
+    second = _extract_order_from_card(
+        BeautifulSoup(html, "html.parser").article, other_source  # type: ignore[arg-type]
+    )
+
+    assert first is not None
+    assert second is not None
+    assert first.fingerprint == second.fingerprint

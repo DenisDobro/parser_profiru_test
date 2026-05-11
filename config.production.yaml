@@ -3,6 +3,18 @@ sources:
     kind: public_html
     url: "https://profi.ru/rabota/repetitor/istoriya/"
     enabled: true
+  - name: history-ege-tutor-orders
+    kind: public_html
+    url: "https://profi.ru/rabota/repetitor/repetitor-po-podgotovke-k-ege-po-istorii/"
+    enabled: true
+  - name: social-studies-tutor-orders
+    kind: public_html
+    url: "https://profi.ru/rabota/repetitor/obshchestvoznanie/"
+    enabled: true
+  - name: general-tutor-orders
+    kind: public_html
+    url: "https://profi.ru/rabota/repetitor/"
+    enabled: true
 
 filters:
   include_keywords:
