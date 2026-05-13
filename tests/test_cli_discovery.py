@@ -95,7 +95,7 @@ def test_discover_pservice_source_urls_filters_history_services() -> None:
             discover_pservice_sources=True,
             max_pservice_sources=5,
             pservice_include_keywords=["истори", "ЕГЭ", "ОГЭ", "ВПР"],
-            pservice_exclude_keywords=["обществозн"],
+            pservice_exclude_keywords=["обществозн", "искусств", "балет", "архитектур"],
         ),
     )
     respx.get("https://profi.ru/rabota/repetitor/istoriya/").mock(
@@ -114,6 +114,7 @@ def test_discover_pservice_source_urls_filters_history_services() -> None:
                             "pservices": [
                               {"label": "ЕГЭ по истории", "value": "1010080"},
                               {"label": "ОГЭ по истории", "value": "1010081"},
+                              {"label": "История искусств", "value": "2000561"},
                               {"label": "Обществознание", "value": "9"},
                               {"label": "Киноведение", "value": "2002735"}
                             ]
@@ -121,6 +122,7 @@ def test_discover_pservice_source_urls_filters_history_services() -> None:
                           "pserviceOrderCounts": [
                             {"pserviceId": "1010080", "count": 8},
                             {"pserviceId": "1010081", "count": 3},
+                            {"pserviceId": "2000561", "count": 2},
                             {"pserviceId": "9", "count": 20},
                             {"pserviceId": "2002735", "count": 0}
                           ]
