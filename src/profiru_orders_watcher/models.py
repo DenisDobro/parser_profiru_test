@@ -31,6 +31,13 @@ class FetchConfig(BaseModel):
     max_discovered_sources: int = 25
     related_source_prefixes: list[str] = Field(default_factory=lambda: ["/rabota/repetitor/"])
     related_source_keywords: list[str] = Field(default_factory=list)
+    discover_pservice_sources: bool = False
+    max_pservice_sources: int = 30
+    pservice_include_keywords: list[str] = Field(default_factory=list)
+    pservice_exclude_keywords: list[str] = Field(default_factory=list)
+    discover_paginated_sources: bool = False
+    max_pages_per_source: int = 3
+    pagination_param_names: list[str] = Field(default_factory=lambda: ["page"])
     selenium_headless: bool = True
     selenium_page_wait_seconds: int = 10
     selenium_profile_path: str | None = None

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import re
-from urllib.parse import parse_qs, urljoin, urlparse
+from datetime import datetime
+from typing import Any, cast
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import httpx
 from bs4 import BeautifulSoup, Tag
@@ -39,8 +41,18 @@ def _order_identity(order: Order) -> str:
     parsed = urlparse(order.url)
     order_id = parse_qs(parsed.query).get("o", [None])[0]
     if order_id:
-        return f"{order.source}:order:{order_id}"
+        return f"profi-order:{order_id}"
     return order.fingerprint
+
+
+def _parse_public_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        cleaned = re.sub(r"\s*\([^)]*\)$", "", value).replace(" GMT", "")
+        return datetime.strptime(cleaned, "%a %b %d %Y %H:%M:%S%z")
+    except ValueError:
+        return None
 
 
 def _extract_json_ld_orders(soup: BeautifulSoup, source: SourceConfig) -> list[Order]:
@@ -81,6 +93,91 @@ def _extract_json_ld_orders(soup: BeautifulSoup, source: SourceConfig) -> list[O
                             raw=candidate,
                         )
                     )
+    return orders
+
+
+def _next_data(soup: BeautifulSoup) -> dict[str, Any]:
+    script = soup.find("script", id="__NEXT_DATA__")
+    if not script or not script.string:
+        return {}
+    try:
+        payload = json.loads(script.string)
+    except json.JSONDecodeError:
+        return {}
+    return cast(dict[str, Any], payload) if isinstance(payload, dict) else {}
+
+
+def _lego_landing_blocks(soup: BeautifulSoup) -> list[dict[str, Any]]:
+    payload = _next_data(soup)
+    blocks = (
+        payload.get("props", {})
+        .get("pageProps", {})
+        .get("legoData", {})
+        .get("legoLandingData", {})
+        .get("blocks", [])
+    )
+    return [cast(dict[str, Any], block) for block in blocks if isinstance(block, dict)]
+
+
+def _extract_next_data_orders(soup: BeautifulSoup, source: SourceConfig) -> list[Order]:
+    orders: list[Order] = []
+    for block in _lego_landing_blocks(soup):
+        current_orders = block.get("currentOrders", [])
+        if not isinstance(current_orders, list):
+            continue
+        for item in current_orders:
+            if not isinstance(item, dict):
+                continue
+            order_id = item.get("id")
+            if not order_id:
+                continue
+
+            aim = _clean_text(str(item.get("aim") or ""))
+            program = _clean_text(str(item.get("program") or ""))
+            details = _clean_text(
+                str(item.get("detailsPublic") or item.get("seoCleanedDetails") or item.get("seoCleanedDescription") or "")
+            )
+            pservices = item.get("pservices", [])
+            pservice_names = [
+                _clean_text(str(pservice.get("name")))
+                for pservice in pservices
+                if isinstance(pservice, dict) and pservice.get("name")
+            ]
+
+            title = aim or (pservice_names[-1] if pservice_names else "") or details or "Заказ Profi.ru"
+            description = _clean_text(" ".join(part for part in [program, aim, details, ", ".join(pservice_names)] if part))
+
+            price = item.get("wpriceMin")
+            price_max = item.get("wpriceMax")
+            raw_price = None
+            if isinstance(price, int):
+                raw_price = f"{price} ₽"
+                if isinstance(price_max, int) and price_max != price:
+                    raw_price = f"{price}-{price_max} ₽"
+            else:
+                price = None
+
+            city = None
+            raw_city = item.get("city")
+            if isinstance(raw_city, dict):
+                gity = raw_city.get("gity")
+                if isinstance(gity, dict):
+                    city = _clean_text(str(gity.get("name") or "")) or None
+
+            url = urljoin(str(source.url), f"/backoffice/n.php?{urlencode({'o': str(order_id)})}")
+            orders.append(
+                Order(
+                    source=source.name,
+                    title=title,
+                    url=url,
+                    description=description or None,
+                    city=city,
+                    price=price,
+                    raw_price=raw_price,
+                    published_at=_parse_public_datetime(item.get("receivd") if isinstance(item.get("receivd"), str) else None),
+                    raw=item,
+                )
+            )
     return orders
 
 
@@ -133,11 +230,17 @@ class PublicHtmlFetcher:
         orders = _extract_json_ld_orders(soup, source)
         seen = {_order_identity(order) for order in orders}
 
+        for order in _extract_next_data_orders(soup, source):
+            identity = _order_identity(order)
+            if identity not in seen:
+                orders.append(order)
+                seen.add(identity)
+
         for selector in ORDER_CARD_SELECTORS:
             for card in soup.select(selector):
-                order = _extract_order_from_card(card, source)
-                if order and _order_identity(order) not in seen:
-                    orders.append(order)
-                    seen.add(_order_identity(order))
+                card_order = _extract_order_from_card(card, source)
+                if card_order and _order_identity(card_order) not in seen:
+                    orders.append(card_order)
+                    seen.add(_order_identity(card_order))
 
         return orders

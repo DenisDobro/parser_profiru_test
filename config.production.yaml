@@ -36,11 +36,30 @@ fetch:
   user_agent: "Mozilla/5.0 profiru-orders-watcher/0.1"
   discover_related_sources: true
   max_discovered_sources: 25
+  discover_pservice_sources: true
+  max_pservice_sources: 30
+  discover_paginated_sources: true
+  max_pages_per_source: 3
+  pagination_param_names:
+    - "page"
   related_source_prefixes:
     - "/rabota/repetitor/"
   related_source_keywords:
     - "истори"
     - "istor"
+  pservice_include_keywords:
+    - "истори"
+    - "ЕГЭ"
+    - "ОГЭ"
+    - "ВПР"
+    - "МЦКО"
+    - "олимпиад"
+  pservice_exclude_keywords:
+    - "обществозн"
+    - "этикет"
+    - "киноведение"
+    - "театроведение"
+    - "искусствоведение"
   selenium_headless: true
   selenium_page_wait_seconds: 10
   selenium_profile_path: null
